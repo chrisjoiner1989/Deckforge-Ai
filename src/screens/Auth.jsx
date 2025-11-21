@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Sparkles, Mail, Lock, Loader2, ArrowRight, Github } from 'lucide-react'
+import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react'
+import { FaGoogle, FaApple, FaFacebook } from 'react-icons/fa'
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)
@@ -11,8 +12,9 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState(null) // 'google', 'apple', 'facebook', or null
 
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signInWithGoogle, signInWithApple, signInWithFacebook } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -38,6 +40,28 @@ export default function Auth() {
     setError('')
     setEmail('')
     setPassword('')
+  }
+
+  const handleOAuthSignIn = async (provider) => {
+    setError('')
+    setOauthLoading(provider)
+
+    let result
+    if (provider === 'google') {
+      result = await signInWithGoogle()
+    } else if (provider === 'apple') {
+      result = await signInWithApple()
+    } else if (provider === 'facebook') {
+      result = await signInWithFacebook()
+    }
+
+    setOauthLoading(null)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      navigate('/decks')
+    }
   }
 
   return (
@@ -131,13 +155,42 @@ export default function Auth() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-11 bg-white/5 border-white/10 hover:bg-white/10 rounded-xl">
-                <Github className="mr-2 h-4 w-4" />
-                Github
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                className="h-11 bg-white/5 border-white/10 hover:bg-white/10 rounded-xl transition-all hover:scale-[1.02]"
+                onClick={() => handleOAuthSignIn('google')}
+                disabled={oauthLoading !== null}
+              >
+                {oauthLoading === 'google' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FaGoogle className="h-4 w-4 text-red-500" />
+                )}
               </Button>
-              <Button variant="outline" className="h-11 bg-white/5 border-white/10 hover:bg-white/10 rounded-xl" onClick={() => navigate('/')}>
-                Guest
+              <Button
+                variant="outline"
+                className="h-11 bg-white/5 border-white/10 hover:bg-white/10 rounded-xl transition-all hover:scale-[1.02]"
+                onClick={() => handleOAuthSignIn('apple')}
+                disabled={oauthLoading !== null}
+              >
+                {oauthLoading === 'apple' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FaApple className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 bg-white/5 border-white/10 hover:bg-white/10 rounded-xl transition-all hover:scale-[1.02]"
+                onClick={() => handleOAuthSignIn('facebook')}
+                disabled={oauthLoading !== null}
+              >
+                {oauthLoading === 'facebook' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FaFacebook className="h-4 w-4 text-blue-500" />
+                )}
               </Button>
             </div>
           </div>

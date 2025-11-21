@@ -20,9 +20,14 @@ export default function DeckBuilder() {
   // Load deck on mount
   useEffect(() => {
     if (id) {
-      loadDeck(id)
+      loadDeck(id).catch(error => {
+        console.error('Failed to load deck:', error)
+        toast.error('Failed to load deck. Redirecting...')
+        setTimeout(() => navigate('/decks'), 2000)
+      })
     }
-  }, [id, loadDeck])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const handleAnalyzeDeck = async () => {
     if (!currentDeck || !currentDeckCards) return
@@ -41,8 +46,13 @@ export default function DeckBuilder() {
   }
 
   const handleRemoveCard = async (cardId) => {
+    if (!id) {
+      toast.error('No deck selected')
+      return
+    }
+
     try {
-      await removeCard(cardId)
+      await removeCard(id, cardId)
       toast.success('Card removed from deck')
     } catch (error) {
       console.error('Failed to remove card:', error)
@@ -90,7 +100,9 @@ export default function DeckBuilder() {
     return acc
   }, {})
 
-  const maxCurveValue = Math.max(...Object.values(manaCurve))
+  const maxCurveValue = Object.keys(manaCurve).length > 0
+    ? Math.max(...Object.values(manaCurve))
+    : 1 // Default to 1 if no cards
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -147,10 +159,29 @@ export default function DeckBuilder() {
 
           {/* Deck List Tab */}
           <TabsContent value="deck" className="space-y-6 animate-fade-in">
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Main Deck Column */}
-              <div className="md:col-span-2 space-y-6">
-                {Object.entries(cardsByCategory).map(([category, cards]) => (
+            {deckCards.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-28 h-28 bg-gradient-to-br from-primary to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-6 border-2 border-primary/30 shadow-lg shadow-primary/20">
+                  <Plus className="w-14 h-14 text-primary-foreground" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3">Empty Deck</h3>
+                <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-lg">
+                  Start building your deck by adding cards from the multiverse.
+                </p>
+                <Button
+                  onClick={handleAddCards}
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground h-12 px-6 font-bold shadow-lg shadow-primary/30 border-2 border-primary/30"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Cards
+                </Button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Main Deck Column */}
+                <div className="md:col-span-2 space-y-6">
+                  {Object.entries(cardsByCategory).map(([category, cards]) => (
                   <div key={category} className="space-y-3">
                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider pl-1 flex items-center justify-between border-b-2 border-primary/20 pb-2">
                       {category}
@@ -210,8 +241,9 @@ export default function DeckBuilder() {
                     })}
                   </div>
                 </div>
+                </div>
               </div>
-            </div>
+            )}
           </TabsContent>
 
           {/* Stats Tab */}

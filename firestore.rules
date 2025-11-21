@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // User documents - users can only read/write their own data
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Decks subcollection - users can only access their own decks
+      match /decks/{deckId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && request.resource.data.name.size() <= 100
+                      && request.resource.data.format is string
+                      && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(userId)
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && request.resource.data.name.size() <= 100;
+        allow delete: if isOwner(userId);
+
+        // Cards subcollection - users can only access cards in their own decks
+        match /cards/{cardId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.name is string
+                        && request.resource.data.name.size() > 0
+                        && request.resource.data.quantity is int
+                        && request.resource.data.quantity > 0
+                        && request.resource.data.quantity <= 100;
+          allow update: if isOwner(userId)
+                        && request.resource.data.quantity is int
+                        && request.resource.data.quantity > 0
+                        && request.resource.data.quantity <= 100;
+          allow delete: if isOwner(userId);
+        }
+      }
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

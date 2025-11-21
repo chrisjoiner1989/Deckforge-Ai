@@ -80,7 +80,7 @@ export default function CardSearch() {
         colors: card.colors || []
       }
 
-      await addCard(cardData)
+      await addCard(deckId, cardData)
       toast.success(`Added ${card.name} to deck!`)
     } catch (error) {
       console.error('Failed to add card:', error)

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 import {
   getUserDecks,
@@ -31,20 +31,9 @@ export function DeckProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Load user's decks when they sign in
-  useEffect(() => {
-    if (user) {
-      loadUserDecks()
-    } else {
-      setDecks([])
-      setCurrentDeck(null)
-      setCurrentDeckCards([])
-    }
-  }, [user])
-
   // ==================== DECK OPERATIONS ====================
 
-  async function loadUserDecks() {
+  const loadUserDecks = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
@@ -58,9 +47,9 @@ export function DeckProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
-  async function loadDeck(deckId) {
+  const loadDeck = useCallback(async (deckId) => {
     if (!user) return
 
     setLoading(true)
@@ -81,7 +70,18 @@ export function DeckProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  // Load user's decks when they sign in
+  useEffect(() => {
+    if (user) {
+      loadUserDecks()
+    } else {
+      setDecks([])
+      setCurrentDeck(null)
+      setCurrentDeckCards([])
+    }
+  }, [user, loadUserDecks])
 
   async function createNewDeck(deckData) {
     if (!user) throw new Error('User must be signed in')
