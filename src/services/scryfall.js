@@ -24,7 +24,8 @@ export const searchCards = async (query) => {
       cmc: card.cmc,
       power: card.power,
       toughness: card.toughness,
-      flavorText: card.flavor_text
+      flavorText: card.flavor_text,
+      price: card.prices?.usd || '0.00'
     }));
   } catch (error) {
     console.error('Error searching cards:', error);

@@ -154,12 +154,12 @@ export function DeckProvider({ children }) {
 
   // ==================== CARD OPERATIONS ====================
 
-  async function addCard(deckId, cardData) {
+  async function addCard(deckId, cardData, board = 'main') {
     if (!user) throw new Error('User must be signed in')
 
     setError(null)
     try {
-      await addCardToDeck(user.uid, deckId, cardData)
+      const cardId = await addCardToDeck(user.uid, deckId, cardData, board)
 
       // If this is the current deck, reload its cards
       if (currentDeck?.id === deckId) {
@@ -167,7 +167,7 @@ export function DeckProvider({ children }) {
         setCurrentDeckCards(cards)
       }
 
-      return true
+      return cardId
     } catch (err) {
       setError(err.message)
       console.error('Error adding card to deck:', err)

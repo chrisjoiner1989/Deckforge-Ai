@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Filter, Plus, Loader2, ArrowLeft } from 'lucide-react'
+import { Search, Filter, Plus, Loader2, ArrowLeft, Layers } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useDecks } from '@/context/DeckContext'
@@ -55,7 +55,7 @@ export default function CardSearch() {
     }
   }
 
-  const handleAddToDeck = async (card, event) => {
+  const handleAddToDeck = async (card, event, board = 'main') => {
     event?.stopPropagation() // Prevent card details dialog from opening
 
     if (!deckId) {
@@ -77,11 +77,12 @@ export default function CardSearch() {
         flavorText: card.flavorText || '',
         set: card.set || '',
         rarity: card.rarity || '',
-        colors: card.colors || []
+        colors: card.colors || [],
+        price: card.price || '0.00'
       }
 
-      await addCard(deckId, cardData)
-      toast.success(`Added ${card.name} to deck!`)
+      await addCard(deckId, cardData, board)
+      toast.success(`Added ${card.name} to ${board === 'sideboard' ? 'Sideboard' : 'Deck'}!`)
     } catch (error) {
       console.error('Failed to add card:', error)
       toast.error('Failed to add card. Please try again.')
@@ -292,23 +293,31 @@ export default function CardSearch() {
                 </div>
 
                 {deckId && (
-                  <div className="p-6 border-t border-white/10 bg-black/20">
+                  <div className="p-6 border-t border-white/10 bg-black/20 flex gap-3">
                     <Button
-                      onClick={() => handleAddToDeck(selectedCard)}
+                      onClick={(e) => handleAddToDeck(selectedCard, e, 'main')}
                       disabled={addingCardId === selectedCard.id}
-                      className="w-full h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white text-lg font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02]"
+                      className="flex-1 h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white text-lg font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02]"
                     >
                       {addingCardId === selectedCard.id ? (
-                        <>
-                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                          Summoning...
-                        </>
+                        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
                       ) : (
-                        <>
-                          <Plus className="w-6 h-6 mr-2" />
-                          Add to Deck
-                        </>
+                        <Plus className="w-6 h-6 mr-2" />
                       )}
+                      Add to Main
+                    </Button>
+                    <Button
+                      onClick={(e) => handleAddToDeck(selectedCard, e, 'sideboard')}
+                      disabled={addingCardId === selectedCard.id}
+                      variant="outline"
+                      className="flex-1 h-14 border-2 border-primary/30 hover:bg-primary/10 text-primary text-lg font-bold rounded-xl transition-all hover:scale-[1.02]"
+                    >
+                      {addingCardId === selectedCard.id ? (
+                        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                      ) : (
+                        <Layers className="w-6 h-6 mr-2" />
+                      )}
+                      Add to Sideboard
                     </Button>
                   </div>
                 )}

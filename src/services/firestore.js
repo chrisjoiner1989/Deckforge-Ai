@@ -160,18 +160,23 @@ export async function getDeckCards(userId, deckId) {
  * @param {string} userId - The user's ID
  * @param {string} deckId - The deck's ID
  * @param {Object} cardData - Card data from Scryfall
+ * @param {string} board - 'main' or 'sideboard' (default: 'main')
  * @returns {Promise<string>} The card document ID
  */
-export async function addCardToDeck(userId, deckId, cardData) {
+export async function addCardToDeck(userId, deckId, cardData, board = 'main') {
   try {
     const cardsRef = collection(db, 'users', userId, 'decks', deckId, 'cards')
 
-    // Check if card already exists in deck
-    const q = query(cardsRef, where('scryfallId', '==', cardData.id))
+    // Check if card already exists in deck AND in the same board
+    const q = query(
+      cardsRef, 
+      where('scryfallId', '==', cardData.id),
+      where('board', '==', board)
+    )
     const existingCards = await getDocs(q)
 
     if (!existingCards.empty) {
-      // Card exists, increment quantity
+      // Card exists in this board, increment quantity
       const existingCard = existingCards.docs[0]
       const currentQuantity = existingCard.data().quantity || 1
       await updateDoc(existingCard.ref, {
@@ -179,7 +184,7 @@ export async function addCardToDeck(userId, deckId, cardData) {
       })
       return existingCard.id
     } else {
-      // Card doesn't exist, add it
+      // Card doesn't exist in this board, add it
       const newCard = {
         scryfallId: cardData.id,
         name: cardData.name,
@@ -189,6 +194,8 @@ export async function addCardToDeck(userId, deckId, cardData) {
         imageUrl: cardData.imageUrl || '',
         category: determineCardCategory(cardData.type),
         quantity: 1,
+        board: board,
+        price: cardData.price || '0.00',
         addedAt: serverTimestamp()
       }
 
@@ -278,25 +285,40 @@ function determineCardCategory(typeLine) {
  * @returns {Object} Statistics object
  */
 export function calculateDeckStats(cards) {
-  const totalCards = cards.reduce((sum, card) => sum + (card.quantity || 1), 0)
+  const mainDeckCards = cards.filter(card => card.board !== 'sideboard')
+  const sideboardCards = cards.filter(card => card.board === 'sideboard')
 
-  const cardsByCategory = cards.reduce((acc, card) => {
+  const totalCards = mainDeckCards.reduce((sum, card) => sum + (card.quantity || 1), 0)
+  const totalSideboard = sideboardCards.reduce((sum, card) => sum + (card.quantity || 1), 0)
+
+  const cardsByCategory = mainDeckCards.reduce((acc, card) => {
     const category = card.category || 'Spells'
     if (!acc[category]) acc[category] = []
     acc[category].push(card)
     return acc
   }, {})
 
-  const manaCurve = cards.reduce((acc, card) => {
+  const manaCurve = mainDeckCards.reduce((acc, card) => {
+    // Skip lands for mana curve
+    if (card.category === 'Lands') return acc
+    
     const cmc = Math.min(card.cmc || 0, 7)
     const quantity = card.quantity || 1
     acc[cmc] = (acc[cmc] || 0) + quantity
     return acc
   }, {})
 
+  // Calculate total value if prices are available (mock for now or if added later)
+  const totalValue = cards.reduce((sum, card) => {
+    const price = parseFloat(card.price || 0)
+    return sum + (price * (card.quantity || 1))
+  }, 0)
+
   return {
     totalCards,
+    totalSideboard,
     cardsByCategory,
-    manaCurve
+    manaCurve,
+    totalValue
   }
 }
