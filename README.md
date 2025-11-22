@@ -1,4 +1,4 @@
-# Grimoire - MTG Deckbuilder
+# DekForge.ai - MTG Deckbuilder
 
 A modern Magic: The Gathering deck building application with AI-powered analysis, built with React, Firebase, and the Scryfall API.
 
@@ -21,22 +21,26 @@ A modern Magic: The Gathering deck building application with AI-powered analysis
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <your-repo-url>
    cd mtg-deckbuilder
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment variables**
+
    ```bash
    cp .env.example .env
    ```
 
    Edit `.env` and add your Firebase credentials from [Firebase Console](https://console.firebase.google.com/) → Project Settings → Your apps:
+
    ```
    VITE_FIREBASE_API_KEY=your_api_key_here
    VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
@@ -49,6 +53,7 @@ A modern Magic: The Gathering deck building application with AI-powered analysis
 4. **Set up Firebase security rules**
 
    Deploy the security rules to protect your database:
+
    ```bash
    # Install Firebase CLI if you haven't already
    npm install -g firebase-tools
@@ -70,12 +75,14 @@ A modern Magic: The Gathering deck building application with AI-powered analysis
 5. **Enable authentication providers**
 
    In [Firebase Console](https://console.firebase.google.com/) → Authentication → Sign-in method, enable:
+
    - ✅ Email/Password
    - ✅ Google (optional)
    - ✅ Apple (optional, requires Apple Developer account)
    - ✅ Facebook (optional, requires Facebook App)
 
 6. **Run the development server**
+
    ```bash
    npm run dev
    ```
@@ -94,12 +101,14 @@ A modern Magic: The Gathering deck building application with AI-powered analysis
 - Real security comes from your `firestore.rules` file
 
 **What IS protected:**
+
 - ✅ `.env` file is gitignored - never committed to version control
 - ✅ Firestore security rules restrict data access to authenticated users only
 - ✅ Users can only read/write their own data
 - ✅ Input validation on all Firestore writes
 
 **Read more:**
+
 - [Is it safe to expose Firebase API keys?](https://firebase.google.com/docs/projects/api-keys)
 - [Firebase Security Rules](https://firebase.google.com/docs/rules)
 
@@ -115,6 +124,7 @@ match /users/{userId}/decks/{deckId} {
 ```
 
 **What's protected:**
+
 - ✅ Users can only read their own decks
 - ✅ Users can only create/update/delete their own decks
 - ✅ Input validation on card quantities (1-100)
@@ -124,16 +134,19 @@ match /users/{userId}/decks/{deckId} {
 ### Best Practices Implemented
 
 1. **Authentication**
+
    - Email/password with minimum 6-character requirement
    - OAuth with account collision handling
    - User sessions managed by Firebase Auth
 
 2. **Data Validation**
+
    - Client-side validation before database writes
    - Server-side validation via Firestore rules
    - Type checking on all user inputs
 
 3. **Error Handling**
+
    - User-friendly error messages
    - Detailed console logging for debugging
    - Toast notifications for all operations
@@ -191,11 +204,13 @@ mtg-deckbuilder/
 ### Adding New Features
 
 1. **New authentication provider**
+
    - Add provider in `src/context/AuthContext.jsx`
    - Update UI in `src/screens/Auth.jsx`
    - Enable in Firebase Console
 
 2. **New Firestore collection**
+
    - Add CRUD functions in `src/services/firestore.js`
    - Update `firestore.rules` with security rules
    - Deploy rules: `firebase deploy --only firestore:rules`
@@ -228,6 +243,7 @@ vercel
 ```
 
 **Don't forget to:**
+
 - Set environment variables in your hosting platform
 - Deploy Firestore security rules
 - Configure authorized domains in Firebase Console
@@ -235,18 +251,22 @@ vercel
 ## Common Issues
 
 ### "Permission denied" errors
+
 - **Cause**: Firestore security rules not deployed
 - **Fix**: Run `firebase deploy --only firestore:rules`
 
 ### OAuth popup blocked
+
 - **Cause**: Browser blocking popups
 - **Fix**: User must allow popups for your domain
 
 ### "Firebase: Error (auth/operation-not-allowed)"
+
 - **Cause**: Auth provider not enabled in Firebase Console
 - **Fix**: Enable the provider in Firebase Console → Authentication
 
 ### Cards not loading
+
 - **Cause**: Scryfall API rate limiting or network issue
 - **Fix**: Wait a moment and try again; Scryfall is free but rate-limited
 

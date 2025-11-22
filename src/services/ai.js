@@ -1,13 +1,64 @@
-// Mock AI service for deck analysis
-// In a real implementation, this would call the OpenAI API
+import OpenAI from 'openai';
+
+const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+// Initialize OpenAI client if key is available
+const openai = apiKey ? new OpenAI({
+  apiKey: apiKey,
+  dangerouslyAllowBrowser: true 
+}) : null;
 
 export const analyzeDeck = async (deck, cards) => {
+  // Fallback to mock if no API key
+  if (!openai) {
+    console.warn("No OpenAI API key found. Using mock data.");
+    return mockAnalyzeDeck(deck);
+  }
+
+  try {
+    const cardList = cards.map(c => `${c.quantity}x ${c.name}`).join('\n');
+    
+    const prompt = `
+      Analyze this Magic: The Gathering deck for the ${deck.format} format.
+      Deck Name: ${deck.name}
+      
+      Card List:
+      ${cardList}
+      
+      Provide a JSON response with the following structure:
+      {
+        "score": number (0-100),
+        "grade": string (e.g., "A", "B+"),
+        "summary": string (2-3 sentences),
+        "synergies": [{ "name": string, "description": string, "rating": string (High/Medium/Low) }],
+        "suggestions": [{ "name": string, "reason": string, "add": number, "cut": string }],
+        "matchups": [{ "archetype": string, "winRate": string, "notes": string }],
+        "sideboard": [string]
+      }
+    `;
+
+    const completion = await openai.chat.completions.create({
+      messages: [
+        { role: "system", content: "You are a professional Magic: The Gathering deck builder and analyst. Provide detailed, competitive insights." }, 
+        { role: "user", content: prompt }
+      ],
+      model: "gpt-3.5-turbo", // Using 3.5-turbo for cost/speed, can upgrade to gpt-4
+      response_format: { type: "json_object" },
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error("OpenAI API Error:", error);
+    // Fallback to mock on error
+    return mockAnalyzeDeck(deck);
+  }
+};
+
+const mockAnalyzeDeck = async (deck) => {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // Mock response based on the deck content
-  // We'll generate slightly dynamic data based on the deck name/format to make it feel real
-
   return {
     score: 85,
     grade: "B+",
@@ -66,3 +117,4 @@ export const analyzeDeck = async (deck, cards) => {
     ],
   };
 };
+
