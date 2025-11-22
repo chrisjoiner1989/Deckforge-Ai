@@ -166,11 +166,14 @@ export async function getDeckCards(userId, deckId) {
 export async function addCardToDeck(userId, deckId, cardData, board = 'main') {
   try {
     const cardsRef = collection(db, 'users', userId, 'decks', deckId, 'cards')
+    
+    // cardData comes from the app already transformed with scryfallId
+    const scryfallId = cardData.scryfallId || cardData.id
 
     // Check if card already exists in deck AND in the same board
     const q = query(
       cardsRef, 
-      where('scryfallId', '==', cardData.id),
+      where('scryfallId', '==', scryfallId),
       where('board', '==', board)
     )
     const existingCards = await getDocs(q)
@@ -186,7 +189,7 @@ export async function addCardToDeck(userId, deckId, cardData, board = 'main') {
     } else {
       // Card doesn't exist in this board, add it
       const newCard = {
-        scryfallId: cardData.id,
+        scryfallId: scryfallId,
         name: cardData.name,
         type: cardData.type,
         manaCost: cardData.manaCost || '',
