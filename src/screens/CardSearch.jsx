@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Filter, Plus, Loader2, ArrowLeft, Layers } from 'lucide-react'
+import { Search, Filter, Plus, Loader2, ArrowLeft, Layers, X, Check } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useDecks } from '@/context/DeckContext'
@@ -19,15 +19,39 @@ export default function CardSearch() {
   const [selectedColors, setSelectedColors] = useState([])
   const [selectedCard, setSelectedCard] = useState(null)
   const [addingCardId, setAddingCardId] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [activeFilters, setActiveFilters] = useState({})
+  
+  // Filter options
+  const formats = ['Standard', 'Modern', 'Commander', 'Legacy', 'Vintage', 'Pioneer', 'Pauper']
+  const rarities = ['Common', 'Uncommon', 'Rare', 'Mythic']
+  const types = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
 
   const handleSearch = async (e) => {
-    const query = e.target.value
-    setSearchQuery(query)
+    const query = e?.target?.value ?? searchQuery
+    if (e?.target?.value !== undefined) setSearchQuery(query)
     
     if (query.length > 2) {
       setIsLoading(true)
       try {
-        const results = await searchCards(query)
+        // Build complex query
+        let complexQuery = query
+        
+        // Add colors
+        if (selectedColors.length > 0) {
+          complexQuery += ` c:${selectedColors.join('')}`
+        }
+        
+        // Add filters
+        if (activeFilters.format) complexQuery += ` f:${activeFilters.format}`
+        if (activeFilters.rarity && activeFilters.rarity.length > 0) {
+          complexQuery += ` (${activeFilters.rarity.map(r => `r:${r}`).join(' or ')})`
+        }
+        if (activeFilters.type && activeFilters.type.length > 0) {
+          complexQuery += ` (${activeFilters.type.map(t => `t:${t}`).join(' or ')})`
+        }
+
+        const results = await searchCards(complexQuery)
         setCards(results)
       } catch (error) {
         console.error("Search failed:", error)
@@ -39,21 +63,65 @@ export default function CardSearch() {
     }
   }
 
-  const colors = [
-    { symbol: 'W', name: 'White', class: 'bg-gradient-mana-w text-black' },
-    { symbol: 'U', name: 'Blue', class: 'bg-gradient-mana-u text-white' },
-    { symbol: 'B', name: 'Black', class: 'bg-gradient-mana-b text-white' },
-    { symbol: 'R', name: 'Red', class: 'bg-gradient-mana-r text-white' },
-    { symbol: 'G', name: 'Green', class: 'bg-gradient-mana-g text-white' },
-  ]
-
-  const toggleColor = (symbol) => {
-    if (selectedColors.includes(symbol)) {
-      setSelectedColors(selectedColors.filter(c => c !== symbol))
-    } else {
-      setSelectedColors([...selectedColors, symbol])
+  // Trigger search when filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyFilters = (newFilters) => {
+    setActiveFilters(newFilters)
+    setShowFilters(false)
+    // Trigger search with new filters
+    if (searchQuery.length > 2) {
+      // We need to call handleSearch logic but handleSearch expects an event or uses state.
+      // Let's extract the search logic or just call it manually.
+      // Since handleSearch uses state for filters (which we just updated but state update is async),
+      // we should pass the new filters directly or wait.
+      // Better: Refactor handleSearch to accept filters as arg or use a useEffect.
+      // For now, let's just rely on the user to hit enter or type, OR force a re-search.
+      // Actually, let's make handleSearch use the *current* state, which might be stale here.
+      // So let's pass filters to a search function.
+      
+      // Re-implementing search logic here for immediate update:
+      setIsLoading(true)
+      let complexQuery = searchQuery
+      if (selectedColors.length > 0) complexQuery += ` c:${selectedColors.join('')}`
+      if (newFilters.format) complexQuery += ` f:${newFilters.format}`
+      if (newFilters.rarity?.length > 0) complexQuery += ` (${newFilters.rarity.map(r => `r:${r}`).join(' or ')})`
+      if (newFilters.type?.length > 0) complexQuery += ` (${newFilters.type.map(t => `t:${t}`).join(' or ')})`
+      
+      searchCards(complexQuery).then(setCards).finally(() => setIsLoading(false))
     }
   }
+
+  // Update search when colors change
+  const toggleColor = (symbol) => {
+    const newColors = selectedColors.includes(symbol)
+      ? selectedColors.filter(c => c !== symbol)
+      : [...selectedColors, symbol]
+    
+    setSelectedColors(newColors)
+    
+    // Trigger search immediately
+    if (searchQuery.length > 2) {
+      setIsLoading(true)
+      let complexQuery = searchQuery
+      if (newColors.length > 0) complexQuery += ` c:${newColors.join('')}`
+      if (activeFilters.format) complexQuery += ` f:${activeFilters.format}`
+      if (activeFilters.rarity?.length > 0) complexQuery += ` (${activeFilters.rarity.map(r => `r:${r}`).join(' or ')})`
+      if (activeFilters.type?.length > 0) complexQuery += ` (${activeFilters.type.map(t => `t:${t}`).join(' or ')})`
+      
+      searchCards(complexQuery).then(setCards).finally(() => setIsLoading(false))
+    }
+  }
+
+  const colors = [
+    { symbol: 'W', name: 'White', svg: 'https://svgs.scryfall.io/card-symbols/W.svg' },
+    { symbol: 'U', name: 'Blue', svg: 'https://svgs.scryfall.io/card-symbols/U.svg' },
+    { symbol: 'B', name: 'Black', svg: 'https://svgs.scryfall.io/card-symbols/B.svg' },
+    { symbol: 'R', name: 'Red', svg: 'https://svgs.scryfall.io/card-symbols/R.svg' },
+    { symbol: 'G', name: 'Green', svg: 'https://svgs.scryfall.io/card-symbols/G.svg' },
+    { symbol: 'C', name: 'Colorless', svg: 'https://svgs.scryfall.io/card-symbols/C.svg' },
+  ]
+
+
 
   const handleAddToDeck = async (card, event, board = 'main') => {
     event?.stopPropagation() // Prevent card details dialog from opening
@@ -93,6 +161,7 @@ export default function CardSearch() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Header / Search Section */}
       {/* Header / Search Section */}
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/10 pb-6 pt-6 px-6 shadow-2xl">
         <div className="max-w-6xl mx-auto space-y-6">
@@ -136,9 +205,19 @@ export default function CardSearch() {
 
           {/* Filters */}
           <div className="flex items-center justify-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            <Button variant="outline" size="sm" className="rounded-full border-white/10 bg-white/5 hover:bg-white/10 font-semibold">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowFilters(true)}
+              className={`rounded-full border-white/10 bg-white/5 hover:bg-white/10 font-semibold ${Object.keys(activeFilters).length > 0 ? 'border-primary text-primary bg-primary/10' : ''}`}
+            >
               <Filter className="w-3 h-3 mr-2" />
               Filters
+              {Object.keys(activeFilters).length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">
+                  {Object.keys(activeFilters).length}
+                </Badge>
+              )}
             </Button>
             <div className="w-px h-6 bg-white/10 mx-2" />
             {colors.map((color) => (
@@ -146,14 +225,14 @@ export default function CardSearch() {
                 key={color.symbol}
                 onClick={() => toggleColor(color.symbol)}
                 className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 font-bold shadow-lg
+                  w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg overflow-hidden
                   ${selectedColors.includes(color.symbol) 
-                    ? `${color.class} scale-110 ring-2 ring-offset-2 ring-offset-background ring-white/50` 
-                    : 'bg-black/40 border-white/10 text-muted-foreground hover:border-white/30 hover:text-white hover:scale-105'}
+                    ? 'scale-110 ring-2 ring-offset-2 ring-offset-background ring-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' 
+                    : 'opacity-70 hover:opacity-100 hover:scale-105 grayscale hover:grayscale-0'}
                 `}
                 title={color.name}
               >
-                {color.symbol}
+                <img src={color.svg} alt={color.name} className="w-full h-full" />
               </button>
             ))}
           </div>
@@ -324,6 +403,115 @@ export default function CardSearch() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="bg-background/95 backdrop-blur-xl border-2 border-primary/20 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-glow flex items-center gap-2">
+              <Filter className="w-5 h-5 text-primary" />
+              Advanced Filters
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Format */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Format</label>
+              <div className="flex flex-wrap gap-2">
+                {formats.map(format => (
+                  <button
+                    key={format}
+                    onClick={() => setActiveFilters(prev => ({ ...prev, format: prev.format === format.toLowerCase() ? null : format.toLowerCase() }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                      activeFilters.format === format.toLowerCase()
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card border-white/10 hover:border-primary/50'
+                    }`}
+                  >
+                    {format}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rarity */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Rarity</label>
+              <div className="flex flex-wrap gap-2">
+                {rarities.map(rarity => {
+                  const isSelected = activeFilters.rarity?.includes(rarity.toLowerCase())
+                  return (
+                    <button
+                      key={rarity}
+                      onClick={() => {
+                        const current = activeFilters.rarity || []
+                        const updated = isSelected 
+                          ? current.filter(r => r !== rarity.toLowerCase())
+                          : [...current, rarity.toLowerCase()]
+                        setActiveFilters(prev => ({ ...prev, rarity: updated }))
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card border-white/10 hover:border-primary/50'
+                      }`}
+                    >
+                      {rarity}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Type */}
+            <div className="space-y-3">
+              <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Card Type</label>
+              <div className="flex flex-wrap gap-2">
+                {types.map(type => {
+                  const isSelected = activeFilters.type?.includes(type.toLowerCase())
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        const current = activeFilters.type || []
+                        const updated = isSelected 
+                          ? current.filter(t => t !== type.toLowerCase())
+                          : [...current, type.toLowerCase()]
+                        setActiveFilters(prev => ({ ...prev, type: updated }))
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card border-white/10 hover:border-primary/50'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-white/10">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => {
+                setActiveFilters({})
+                applyFilters({})
+              }}
+            >
+              Clear All
+            </Button>
+            <Button 
+              className="flex-1 bg-primary text-primary-foreground font-bold"
+              onClick={() => applyFilters(activeFilters)}
+            >
+              Apply Filters
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
